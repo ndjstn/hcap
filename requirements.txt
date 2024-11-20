@@ -1,4 +1,5 @@
 streamlit==1.40.1
+distutils
 numpy==1.23.5
 spacy==3.7.5
 thinc==8.1.0
