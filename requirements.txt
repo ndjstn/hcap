@@ -1,9 +1,6 @@
-streamlit
-sqlite3
-wordcloud
-matplotlib
-pandas
-spacy
-nltk
-plotly
-altair
+streamlit>=1.18.0
+spacy>=3.0.0
+nltk>=3.6.0
+matplotlib>=3.4.0
+pandas>=1.3.0
+wordcloud>=1.8.0
