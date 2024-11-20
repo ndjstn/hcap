@@ -1,7 +1,7 @@
 streamlit
-numpy==1.23.5
-spacy==3.7.5
-thinc==8.1.0
+numpy
+spacy
+thinc
 pandas
 matplotlib
 nltk
