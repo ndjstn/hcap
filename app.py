@@ -14,7 +14,7 @@ import os
 from functools import partial
 import json
 from io import BytesIO
-import spacy.cli
+from spacy.cli import download as spacy_download
 
 try:
     nlp = spacy.load("en_core_web_sm")
