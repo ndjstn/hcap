@@ -1,0 +1,9 @@
+streamlit
+sqlite3
+wordcloud
+matplotlib
+pandas
+spacy
+nltk
+plotly
+altair
