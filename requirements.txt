@@ -1,12 +1,11 @@
 streamlit
-numpy==1.23.5 
-spacy==3.7.5 
+numpy>=1.23,<1.24  # Compatible with spacy==3.7.5
+spacy==3.7.5
 thinc==8.1.0
-pandas
+pandas>=1.0
 matplotlib
 nltk
 wordcloud
 plotly
 altair
-# Add other dependencies as needed
-en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whlpy3-none-any.whl
