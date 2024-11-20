@@ -14,7 +14,13 @@ import os
 from functools import partial
 import json
 from io import BytesIO
-
+from spacy.cli import download as spacy_download
+# Ensure SpaCy model is available
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    spacy_download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 # Set page config for full-width layout
 st.set_page_config(layout="wide")
 
