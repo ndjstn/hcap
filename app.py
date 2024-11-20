@@ -14,6 +14,8 @@ import os
 from functools import partial
 import json
 from io import BytesIO
+import spacy.cli
+spacy.cli.download("en_core_web_sm")
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
