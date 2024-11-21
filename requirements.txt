@@ -1,0 +1,6 @@
+streamlit
+pandas
+plotly
+altair
+nltk
+rapidfuzz>=3.0.0

@@ -1,3 +1,11 @@
+import sys
+import os
+
+# Add the project root directory to the Python path
+project_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(project_root)
+
+# Rest of your imports
 import streamlit as st
 import sqlite3
 from wordcloud import WordCloud
@@ -10,16 +18,34 @@ import plotly.express as px
 import altair as alt
 from datetime import timedelta
 import logging
-import os
 from functools import partial
 import json
 from io import BytesIO
+import nltk
+
+# Now we can import from src
+from src.sample_data import get_sample_feedback
 
 # Set page config for full-width layout
 st.set_page_config(layout="wide")
 
 # Database setup
 DB_FILE = "feedback.db"
+
+# Setup function to ensure necessary resources are available
+def setup_environment():
+    # Download NLTK data
+    nltk.download('vader_lexicon')
+
+    # Download SpaCy model if not already available
+    try:
+        spacy.load("en_core_web_sm")
+    except OSError:
+        from spacy.cli import download
+        download("en_core_web_sm")
+
+# Call setup function
+setup_environment()
 
 # Initialize SpaCy and NLTK Sentiment Analyzer
 nlp = spacy.load("en_core_web_sm")
@@ -32,7 +58,6 @@ logging.basicConfig(
 )
 
 # Cache the database connection and queries
-@st.cache_resource
 def get_database_connection():
     try:
         return sqlite3.connect(DB_FILE)
@@ -64,16 +89,21 @@ def plot_response_distribution(df, column, title):
     if df.empty:
         return None
     
-    chart = alt.Chart(df).mark_bar().encode(
-        x=alt.X(column, title=title),
-        y=alt.Y('count()', title='Count'),
-        color=column
+    # Group by the specified column and count the occurrences
+    response_counts = df.groupby(column).size().reset_index(name='counts')
+    
+    # Create an Altair chart for the response distribution
+    chart = alt.Chart(response_counts).mark_bar().encode(
+        x=alt.X(f'{column}:N', title=title),  # Use 'N' for nominal data
+        y=alt.Y('counts:Q', title='Count'),   # Use 'Q' for quantitative data
+        color=alt.Color(f'{column}:N', legend=None)  # Optional: remove legend if not needed
     ).properties(
         width=500,
         height=300,
         title=title
     )
     return chart
+
 
 def plot_trend_analysis(df, column, window=7):
     """Create a line chart showing trends over time."""
@@ -115,54 +145,19 @@ def init_db(conn):
     """)
     conn.commit()
 
-    # Check if the table is empty and if so, insert 30 realistic entries
+    # Insert new sample data
+    sample_feedback = get_sample_feedback()
     cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM feedback")
-    count = cursor.fetchone()[0]
-    if count == 0:
-        sample_feedback = [
-            (f"{100+i}", feedback, "Always", "Usually", "Usually", "Always", "Always", recognition, datetime.now().isoformat())
-            for i, (feedback, recognition) in enumerate([
-                ("The stay has been comfortable, but the food could be improved.", "Nurse Alice was exceptional."),
-                ("It’s been a pleasant experience. The staff is very kind.", "Dr. Smith was very attentive."),
-                ("The room was too noisy at night, affecting my sleep.", "No specific recognition."),
-                ("The nurses are very responsive and explain things well.", "Nurse Jane for her clarity."),
-                ("The call button response time could be faster.", "Nurse Tom for his care."),
-                ("I felt like the staff listened to me and addressed my concerns.", "Dr. Lee for his patience."),
-                ("The bathroom assistance was slower than expected.", "No specific recognition."),
-                ("I appreciated the thorough explanations from the nurses.", "Nurse Rachel for her empathy."),
-                ("The staff was courteous, but the food service was delayed.", "Kitchen staff could improve."),
-                ("My stay was comfortable, and I felt well-cared-for.", "Nurse Lucy for her kindness."),
-                ("The call button response time varied; some delays occurred.", "No specific recognition."),
-                ("I had a good experience overall but would like more privacy.", "No specific recognition."),
-                ("The team was amazing. I felt well-supported throughout.", "Nurse Steve for his dedication."),
-                ("I had to wait too long for bathroom assistance.", "Nurse Jack was helpful."),
-                ("The nurses explained my treatment plan clearly.", "Dr. Emily for her explanations."),
-                ("The night shifts seemed less responsive.", "No specific recognition."),
-                ("The courtesy of the staff was commendable.", "No specific recognition."),
-                ("The stay was comfortable, but the noise levels were high.", "No specific recognition."),
-                ("The staff was friendly and supportive throughout my stay.", "Nurse Megan for her kindness."),
-                ("The room was clean, but assistance was delayed at times.", "No specific recognition."),
-                ("The nurses treated me with great respect and courtesy.", "Nurse John for his professionalism."),
-                ("Bathroom assistance was timely and effective.", "No specific recognition."),
-                ("There were delays in call button responses at night.", "No specific recognition."),
-                ("I felt like I was in good hands; the team was fantastic.", "Nurse Sarah for her dedication."),
-                ("Some nurses listened better than others.", "Nurse Jake for his understanding."),
-                ("The explanations were detailed and helpful.", "Dr. Martin for his care."),
-                ("The call button response time could be quicker.", "No specific recognition."),
-                ("The stay was pleasant; no major issues to report.", "Nurse Zoe for her compassion."),
-                ("The room was comfortable, but assistance took too long.", "No specific recognition."),
-                ("Overall, I had a great experience and felt well cared for.", "Nurse Emma for her kindness."),
-            ])
-        ]
-        cursor.executemany("""
-            INSERT INTO feedback (
-                room_number, stay_feedback, call_button_response,
-                bathroom_help_frequency, nurse_explanation_clarity,
-                nurse_listening, nurse_courtesy, recognition, timestamp
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, sample_feedback)
-        conn.commit()
+    cursor.executemany("""
+        INSERT INTO feedback (
+            room_number, stay_feedback, call_button_response,
+            bathroom_help_frequency, nurse_explanation_clarity,
+            nurse_listening, nurse_courtesy, recognition, timestamp
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, sample_feedback)
+    conn.commit()
+    logging.info(f"Inserted {len(sample_feedback)} sample feedback entries.")
+
 
 def insert_feedback(conn, data):
     cursor = conn.cursor()
@@ -174,6 +169,7 @@ def insert_feedback(conn, data):
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, data)
     conn.commit()
+
 
 def get_all_feedback(conn):
     cursor = conn.cursor()
@@ -407,6 +403,7 @@ def web_form_page(conn):
                 st.success("Thank you for your feedback!")
             else:
                 st.error("Room number must be a 3-digit number.")
+        
 
 def reports_page(conn):
     st.subheader("Reports")
