@@ -5,3 +5,4 @@ altair
 nltk
 rapidfuzz>=3.0.0
 wordcloud
+spacy
